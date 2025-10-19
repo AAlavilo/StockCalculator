@@ -1,34 +1,57 @@
-def calculate_stock_metrics(stock_price, amount, transaction_fee, percent_change=None):
-    """ 
-    Calculate break-even price, total investment, and optional profit/loss. 
-    Args: 
-    stock_price (float): Price per stock when buying 
-    amount (int): Number of stocks purchased 
-    transaction_fee (float): Transaction fee per trade (applies to buy and sell) 
-    percent_change (float, optional): Percent change applied to the stock price (-100 to 100) 
-    Returns
-    -------
-    dict: { 
-        "break_even_price": float, 
-        "total_invested": float, 
-        "target_price": float or None, 
-        "profit_loss": float or None 
-    } 
+# stock_calculator/gui/calculator.py
+
+class StockCalculator:
     """
-    total_invested = stock_price * amount + transaction_fee
-    break_even_price = (stock_price * amount + 2 * transaction_fee) / amount
+    Object-oriented stock calculator responsible for all financial logic.
+    Keeps the GUI clean and focused only on display.
+    """
 
-    target_price = None 
-    profit_loss = None
+    def __init__(self, stock_price: float, shares: int, transaction_fee: float):
+        self.stock_price = stock_price
+        self.shares = shares
+        self.transaction_fee = transaction_fee
 
-    if percent_change is not None: 
-        target_price = stock_price * (1 + percent_change / 100) 
-        sell_value = target_price * amount - transaction_fee 
-        profit_loss = sell_value - total_invested 
-        
-    return { 
-        "break_even_price": break_even_price, 
-        "total_invested": total_invested, 
-        "target_price": target_price, 
-        "profit_loss": profit_loss 
-    }
+    # --- BASE VALUES ---
+
+    @property
+    def total_invested(self) -> float:
+        """Total money spent when buying (including buy-side transaction fee)."""
+        return self.stock_price * self.shares + self.transaction_fee
+
+    @property
+    def break_even_price(self) -> float:
+        """Per-stock price required to break even after paying sell-side fee too."""
+        return (self.stock_price * self.shares + 2 * self.transaction_fee) / self.shares
+
+    @property
+    def percent_increase_to_break_even(self) -> float:
+        """How much the price must increase (%) from initial cost to break even."""
+        return ((self.break_even_price - self.stock_price) / self.stock_price) * 100
+
+    # --- PROFIT/LOSS AT GIVEN % ---
+
+    def profit_at(self, percent_change: float) -> dict:
+        """
+        Returns what your P/L would be IF the stock moved by given percent.
+        Useful for the slider functionality.
+        """
+        target_price = self.stock_price * (1 + percent_change / 100)
+        sell_value = target_price * self.shares - self.transaction_fee
+        profit_loss = sell_value - self.total_invested
+        return {
+            "target_price": target_price,
+            "profit_loss": profit_loss
+        }
+
+    # --- PACKED RESULT ---
+
+    def as_dict(self, percent_change: float | None = None) -> dict:
+        """Return all results in dictionary form."""
+        results = {
+            "total_invested": self.total_invested,
+            "break_even_price": self.break_even_price,
+            "percent_increase_to_break_even": self.percent_increase_to_break_even,
+        }
+        if percent_change is not None:
+            results.update(self.profit_at(percent_change))
+        return results
