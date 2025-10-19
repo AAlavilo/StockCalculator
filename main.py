@@ -1,4 +1,4 @@
-from stock_calculator.gui import run_gui
+from stock_calculator.gui.gui import run_gui
 
 if __name__ == "__main__":
     run_gui()
